@@ -1,0 +1,17 @@
+# Intentionally vulnerable config for testing
+# DO NOT USE IN PRODUCTION
+
+server:
+  bind_addr: 0.0.0.0
+  port: 18789
+  
+auth:
+  enabled: false
+  require_auth: false
+  
+cors:
+  allow_origin: "*"
+  CORS_ALLOW_ALL: true
+  
+debug: true
+log_level: debug

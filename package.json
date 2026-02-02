@@ -1,0 +1,46 @@
+{
+  "name": "@musashimiyamoto/agent-guard",
+  "version": "0.1.2",
+  "description": "Security scanner for AI agent configurations. Detects misconfigurations, exposed secrets, and unsafe skill patterns.",
+  "main": "src/index.js",
+  "bin": {
+    "agent-guard": "src/cli.js"
+  },
+  "scripts": {
+    "scan": "node src/cli.js scan",
+    "test": "node src/cli.js scan test/fixtures/vulnerable-agent --json"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "security",
+    "scanner",
+    "openclaw",
+    "moltbook",
+    "llm",
+    "vulnerability",
+    "secrets",
+    "audit"
+  ],
+  "author": "Agent Guard <security@agentguard.co>",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agentguard/agent-guard"
+  },
+  "homepage": "https://agentguard.co",
+  "bugs": {
+    "url": "https://github.com/agentguard/agent-guard/issues"
+  },
+  "files": [
+    "src/",
+    "README.md"
+  ],
+  "dependencies": {
+    "yaml": "^2.3.0"
+  }
+}
