@@ -8,7 +8,7 @@ import { resolve } from 'path';
 
 import { createProxy } from './proxy/index.js';
 
-const VERSION = '0.2.0';
+const VERSION = '0.2.1';
 
 const FEEDBACK_URL = 'https://github.com/MusashiMiyamoto1-cloud/agent-guard/issues/new';
 const REPO_URL = 'https://github.com/MusashiMiyamoto1-cloud/agent-guard';

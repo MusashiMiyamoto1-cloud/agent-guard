@@ -4,3 +4,6 @@ node_modules/
 agent-guard-logs/
 *.lock
 !package-lock.json
+
+# [REDACTED] (private)
+src/[redacted]/
