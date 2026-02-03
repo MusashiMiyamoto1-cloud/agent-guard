@@ -8,7 +8,10 @@ import { resolve } from 'path';
 
 import { createProxy } from './proxy/index.js';
 
-const VERSION = '0.1.0';
+const VERSION = '0.1.4';
+
+const FEEDBACK_URL = 'https://github.com/MusashiMiyamoto1-cloud/agent-guard/issues/new';
+const REPO_URL = 'https://github.com/MusashiMiyamoto1-cloud/agent-guard';
 
 const COLORS = {
   reset: '\x1b[0m',
@@ -52,6 +55,7 @@ function printHelp() {
 ${COLORS.bold}Usage:${COLORS.reset}
   agent-guard scan [path]     Scan directory for security issues
   agent-guard proxy [port]    Start runtime protection proxy
+  agent-guard feedback [msg]  Submit feedback or report an issue
   agent-guard --help          Show this help message
   agent-guard --version       Show version
 
@@ -60,6 +64,8 @@ ${COLORS.bold}Examples:${COLORS.reset}
   npx agent-guard scan ./my-agent     Scan specific agent directory
   npx agent-guard proxy               Start proxy on port 18800
   npx agent-guard proxy 8080          Start proxy on custom port
+  npx agent-guard feedback            Open feedback form
+  npx agent-guard feedback "Bug: ..."  Submit inline feedback
 
 ${COLORS.bold}Options:${COLORS.reset}
   --json                      Output results as JSON
@@ -171,6 +177,59 @@ function printRecommendations(report) {
   }
 }
 
+function printFeedbackFooter() {
+  console.log(`${COLORS.gray}───────────────────────────────────────────────────────${COLORS.reset}`);
+  console.log(`${COLORS.gray}Feedback? Run: ${COLORS.cyan}npx agent-guard feedback${COLORS.gray} or visit:${COLORS.reset}`);
+  console.log(`${COLORS.cyan}${FEEDBACK_URL}${COLORS.reset}\n`);
+}
+
+async function handleFeedback(message) {
+  const { exec } = await import('child_process');
+  const { promisify } = await import('util');
+  const execAsync = promisify(exec);
+  
+  // Build issue URL with pre-filled content
+  const params = new URLSearchParams();
+  params.set('labels', 'feedback');
+  
+  if (message) {
+    // Detect if it's from an agent (heuristic: structured format or mentions "agent")
+    const isAgent = /agent|automated|scan result|false positive/i.test(message);
+    params.set('labels', isAgent ? 'feedback,from-agent' : 'feedback');
+    params.set('title', message.slice(0, 80));
+    params.set('body', `## Feedback\n\n${message}\n\n---\n*Submitted via CLI v${VERSION}*`);
+  } else {
+    params.set('title', 'Feedback: ');
+    params.set('body', `## Feedback\n\n<!-- Describe your feedback, bug, or feature request -->\n\n## Context\n- Agent Guard version: ${VERSION}\n- Submitted via: CLI\n\n---\n*Thank you for helping improve Agent Guard!*`);
+  }
+  
+  const url = `${FEEDBACK_URL}?${params.toString()}`;
+  
+  console.log(`${COLORS.cyan}Opening feedback form...${COLORS.reset}\n`);
+  
+  // Try to open browser
+  const platform = process.platform;
+  try {
+    if (platform === 'darwin') {
+      await execAsync(`open "${url}"`);
+    } else if (platform === 'win32') {
+      await execAsync(`start "" "${url}"`);
+    } else {
+      await execAsync(`xdg-open "${url}"`);
+    }
+    console.log(`${COLORS.green}✓ Browser opened${COLORS.reset}`);
+  } catch {
+    // Browser failed, show URL
+    console.log(`${COLORS.yellow}Could not open browser. Please visit:${COLORS.reset}`);
+    console.log(`${COLORS.cyan}${url}${COLORS.reset}`);
+  }
+  
+  console.log(`\n${COLORS.gray}Or submit directly via API:${COLORS.reset}`);
+  console.log(`${COLORS.gray}curl -X POST ${REPO_URL}/issues \\`);
+  console.log(`  -H "Authorization: token YOUR_TOKEN" \\`);
+  console.log(`  -d '{"title":"Feedback","body":"...","labels":["feedback"]}'${COLORS.reset}\n`);
+}
+
 async function main() {
   const args = process.argv.slice(2);
   
@@ -190,6 +249,13 @@ async function main() {
   }
   
   const command = filteredArgs[0];
+  
+  if (command === 'feedback') {
+    const message = filteredArgs.slice(1).join(' ') || null;
+    if (!quiet) printBanner();
+    await handleFeedback(message);
+    process.exit(0);
+  }
   
   if (command === 'proxy') {
     const port = parseInt(filteredArgs[1]) || 18800;
@@ -233,11 +299,15 @@ async function main() {
     const report = await scan(targetPath);
     
     if (jsonOutput) {
+      // Add feedback URL to JSON output for agent consumption
+      report.feedback_url = FEEDBACK_URL;
+      report.repo_url = REPO_URL;
       console.log(JSON.stringify(report, null, 2));
     } else {
       printScore(report);
       printFindings(report.findings);
       printRecommendations(report);
+      printFeedbackFooter();
     }
     
     // Exit with 1 if critical findings
