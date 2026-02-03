@@ -207,9 +207,11 @@ export class Scanner {
     const low = this.findings.filter(f => f.severity === 'low');
     
     // Calculate score (0-100)
+    // Weights: Critical=30, High=20, Medium=5, Low=2
+    // 1 High = 80 (B), 1 Critical = 70 (C)
     const score = Math.max(0, 100 - (
-      critical.length * 25 +
-      high.length * 10 +
+      critical.length * 30 +
+      high.length * 20 +
       medium.length * 5 +
       low.length * 2
     ));
