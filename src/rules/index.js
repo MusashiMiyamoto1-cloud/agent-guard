@@ -127,6 +127,128 @@ export const rules = [
     files: ['*.md', '*.yaml', '*.yml', '*.json', 'SOUL.md']
   },
 
+  {
+    id: 'SEC-006',
+    name: 'Slack Token',
+    severity: 'critical',
+    description: 'Finds Slack tokens in agent files',
+    patterns: [
+      /xoxb-[0-9]{10,}-[0-9]{10,}-[a-zA-Z0-9]{24,}/g,
+      /xoxp-[0-9]{10,}-[0-9]{10,}-[a-zA-Z0-9]{24,}/g,
+      /xoxo-[0-9]{10,}-[0-9]{10,}-[a-zA-Z0-9]{24,}/g,
+      /xapp-[0-9]+-[A-Za-z0-9]+-[0-9]+-[a-f0-9]+/g
+    ],
+    files: ['*']
+  },
+  {
+    id: 'SEC-007',
+    name: 'Google/GCP Key',
+    severity: 'critical',
+    description: 'Finds Google Cloud and API keys',
+    patterns: [
+      /AIza[0-9A-Za-z_-]{35}/g,
+      /"type"\s*:\s*"service_account"/g,
+      /GOOG[\w]{10,30}/g
+    ],
+    files: ['*']
+  },
+  {
+    id: 'SEC-008',
+    name: 'Azure/Microsoft Key',
+    severity: 'critical',
+    description: 'Finds Azure and Microsoft API keys',
+    patterns: [
+      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
+      /azure[_-]?(?:api[_-]?key|secret|token)\s*[:=]\s*["'][^"']{8,}["']/gi
+    ],
+    files: ['*.yaml', '*.yml', '*.json', '*.env', 'config.*']
+  },
+  {
+    id: 'SEC-009',
+    name: 'Anthropic Key',
+    severity: 'critical',
+    description: 'Finds Anthropic API keys',
+    patterns: [
+      /sk-ant-[a-zA-Z0-9_-]{20,}/g
+    ],
+    files: ['*']
+  },
+  {
+    id: 'SEC-010',
+    name: 'OpenRouter Key',
+    severity: 'critical',
+    description: 'Finds OpenRouter API keys',
+    patterns: [
+      /sk-or-v1-[a-f0-9]{64}/g,
+      /sk-or-[a-zA-Z0-9_-]{20,}/g
+    ],
+    files: ['*']
+  },
+  {
+    id: 'SEC-011',
+    name: 'Discord Token',
+    severity: 'critical',
+    description: 'Finds Discord bot tokens',
+    patterns: [
+      /[MN][A-Za-z\d]{23,}\.[\w-]{6}\.[\w-]{27,}/g,
+      /discord[_-]?token\s*[:=]\s*["'][^"']{20,}["']/gi
+    ],
+    files: ['*']
+  },
+  {
+    id: 'SEC-012',
+    name: 'Telegram Bot Token',
+    severity: 'critical',
+    description: 'Finds Telegram bot tokens',
+    patterns: [
+      /[0-9]{8,10}:[A-Za-z0-9_-]{35}/g
+    ],
+    files: ['*']
+  },
+  {
+    id: 'SEC-013',
+    name: 'Stripe Key',
+    severity: 'critical',
+    description: 'Finds Stripe API keys',
+    patterns: [
+      /sk_live_[0-9a-zA-Z]{24,}/g,
+      /sk_test_[0-9a-zA-Z]{24,}/g,
+      /rk_live_[0-9a-zA-Z]{24,}/g
+    ],
+    files: ['*']
+  },
+  {
+    id: 'SEC-014',
+    name: 'SendGrid Key',
+    severity: 'critical',
+    description: 'Finds SendGrid API keys',
+    patterns: [
+      /SG\.[a-zA-Z0-9_-]{22}\.[a-zA-Z0-9_-]{43}/g
+    ],
+    files: ['*']
+  },
+  {
+    id: 'SEC-015',
+    name: 'npm Token',
+    severity: 'critical',
+    description: 'Finds npm authentication tokens',
+    patterns: [
+      /npm_[a-zA-Z0-9]{36}/g,
+      /\/\/registry\.npmjs\.org\/:_authToken=/g
+    ],
+    files: ['*']
+  },
+  {
+    id: 'SEC-016',
+    name: 'PyPI Token',
+    severity: 'critical',
+    description: 'Finds PyPI API tokens',
+    patterns: [
+      /pypi-[A-Za-z0-9_-]{100,}/g
+    ],
+    files: ['*']
+  },
+
   // Skill Rules
   {
     id: 'SKILL-001',

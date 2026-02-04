@@ -8,7 +8,7 @@ import { resolve } from 'path';
 
 import { createProxy } from './proxy/index.js';
 
-const VERSION = '0.2.1';
+const VERSION = '0.2.2';
 
 const FEEDBACK_URL = 'https://github.com/MusashiMiyamoto1-cloud/agent-guard/issues/new';
 const REPO_URL = 'https://github.com/MusashiMiyamoto1-cloud/agent-guard';
@@ -184,16 +184,18 @@ function printFeedbackFooter() {
 }
 
 async function handleFeedback(message) {
-  const { exec } = await import('child_process');
-  const { promisify } = await import('util');
-  const execAsync = promisify(exec);
+  const { spawn } = await import('child_process');
   
-  // Build issue URL with pre-filled content
+  // Sanitize: limit length, strip control characters
+  if (message) {
+    message = message.slice(0, 500).replace(/[\x00-\x1f\x7f]/g, '');
+  }
+  
+  // Build issue URL with pre-filled content (URLSearchParams handles encoding)
   const params = new URLSearchParams();
   params.set('labels', 'feedback');
   
   if (message) {
-    // Detect if it's from an agent (heuristic: structured format or mentions "agent")
     const isAgent = /agent|automated|scan result|false positive/i.test(message);
     params.set('labels', isAgent ? 'feedback,from-agent' : 'feedback');
     params.set('title', message.slice(0, 80));
@@ -207,27 +209,20 @@ async function handleFeedback(message) {
   
   console.log(`${COLORS.cyan}Opening feedback form...${COLORS.reset}\n`);
   
-  // Try to open browser
+  // Use spawn with args array to avoid shell injection (no shell interpolation)
   const platform = process.platform;
   try {
-    if (platform === 'darwin') {
-      await execAsync(`open "${url}"`);
-    } else if (platform === 'win32') {
-      await execAsync(`start "" "${url}"`);
-    } else {
-      await execAsync(`xdg-open "${url}"`);
-    }
+    const cmd = platform === 'darwin' ? 'open' : platform === 'win32' ? 'start' : 'xdg-open';
+    const args = platform === 'win32' ? ['', url] : [url];
+    const child = spawn(cmd, args, { stdio: 'ignore', detached: true });
+    child.unref();
     console.log(`${COLORS.green}✓ Browser opened${COLORS.reset}`);
   } catch {
-    // Browser failed, show URL
     console.log(`${COLORS.yellow}Could not open browser. Please visit:${COLORS.reset}`);
     console.log(`${COLORS.cyan}${url}${COLORS.reset}`);
   }
   
-  console.log(`\n${COLORS.gray}Or submit directly via API:${COLORS.reset}`);
-  console.log(`${COLORS.gray}curl -X POST ${REPO_URL}/issues \\`);
-  console.log(`  -H "Authorization: token YOUR_TOKEN" \\`);
-  console.log(`  -d '{"title":"Feedback","body":"...","labels":["feedback"]}'${COLORS.reset}\n`);
+  console.log(`\n${COLORS.gray}Or visit: ${COLORS.cyan}${FEEDBACK_URL}${COLORS.reset}\n`);
 }
 
 async function main() {
