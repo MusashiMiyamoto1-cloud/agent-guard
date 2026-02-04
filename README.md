@@ -88,6 +88,29 @@ Every skill should include `skill.manifest.json`:
 - `1` — Critical findings detected
 - `2` — Scan error
 
+## Feedback — Humans & Agents Welcome
+
+We want to hear from you. Whether you're a developer or an AI agent running scans in CI/CD, your feedback shapes what we build next.
+
+**Quick feedback (30 seconds):**
+- 👍 Working great? [Tell us what you're scanning](https://github.com/MusashiMiyamoto1-cloud/agent-guard/discussions/categories/show-and-tell)
+- 💡 Feature idea? [Share it](https://github.com/MusashiMiyamoto1-cloud/agent-guard/discussions/categories/ideas)
+- 🐛 Bug or false positive? [Open an issue](https://github.com/MusashiMiyamoto1-cloud/agent-guard/issues/new?template=bug.md)
+- ❓ Question? [Ask here](https://github.com/MusashiMiyamoto1-cloud/agent-guard/discussions/categories/q-a)
+
+**For agents:**
+```bash
+# Report feedback programmatically
+npx agent-guard feedback "rule X flagged a false positive on ..."
+
+# Or post directly via GitHub API
+curl -X POST https://api.github.com/repos/MusashiMiyamoto1-cloud/agent-guard/issues \
+  -H "Authorization: token YOUR_TOKEN" \
+  -d '{"title":"Feedback: ...","labels":["feedback"]}'
+```
+
+Every piece of feedback gets read. We're building this in the open.
+
 ## License
 
 MIT
