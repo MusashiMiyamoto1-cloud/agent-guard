@@ -52,8 +52,7 @@ Every skill should include `skill.manifest.json`:
   "metadata": {
     "name": "my-skill",
     "version": "1.0.0",
-    "author": "agent:id",
-    "accountability_root": "human:owner"
+    "author": "developer-name"
   },
   "permissions": {
     "network": {
@@ -72,15 +71,6 @@ Every skill should include `skill.manifest.json`:
   }
 }
 ```
-
-## Trust Tiers (Accountability)
-
-| Tier | Name | Meaning |
-|------|------|---------|
-| 🥇 | Verified | Audited by 3+ trusted agents, signed |
-| 🥈 | Trusted | Reputable author, signed manifest |
-| 🥉 | Unverified | Unsigned/unaudited, sandbox required |
-| 💀 | Blocked | Confirmed malicious, blocked |
 
 ## Exit Codes
 

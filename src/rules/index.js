@@ -74,10 +74,13 @@ export const rules = [
     severity: 'critical',
     description: 'Finds OpenAI API keys in agent files',
     patterns: [
-      /sk-[a-zA-Z0-9]{20,}/g,
-      /sk-proj-[a-zA-Z0-9]{20,}/g
+      /sk-proj-[a-zA-Z0-9_-]{10,}/g,
+      /sk-live-[a-zA-Z0-9_-]{10,}/g,
+      /sk-test-[a-zA-Z0-9_-]{10,}/g,
+      /sk-[a-zA-Z0-9_-]{20,}/g,
+      /OPENAI_API_KEY\s*[:=]\s*["']?[a-zA-Z0-9_-]{10,}["']?/g
     ],
-    files: ['*.md', '*.yaml', '*.yml', '*.json', '*.txt', 'SOUL.md', 'HEARTBEAT.md']
+    files: ['*']
   },
   {
     id: 'SEC-002',
@@ -89,7 +92,7 @@ export const rules = [
       /gho_[a-zA-Z0-9]{36}/g,
       /github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59}/g
     ],
-    files: ['*.md', '*.yaml', '*.yml', '*.json', '*.txt', '.env']
+    files: ['*']
   },
   {
     id: 'SEC-003',
@@ -120,11 +123,12 @@ export const rules = [
     severity: 'high',
     description: 'Finds generic hardcoded secrets',
     patterns: [
-      /api[_-]?key\s*[:=]\s*["'][a-zA-Z0-9]{16,}["']/gi,
-      /secret\s*[:=]\s*["'][a-zA-Z0-9]{16,}["']/gi,
-      /token\s*[:=]\s*["'][a-zA-Z0-9]{16,}["']/gi
+      /api[_-]?key\s*[:=]\s*["'][a-zA-Z0-9_-]{10,}["']/gi,
+      /secret\s*[:=]\s*["'][a-zA-Z0-9_-]{10,}["']/gi,
+      /token\s*[:=]\s*["'][a-zA-Z0-9_-]{10,}["']/gi,
+      /["']?apiKey["']?\s*[:=]\s*["'][a-zA-Z0-9_-]{10,}["']/gi
     ],
-    files: ['*.md', '*.yaml', '*.yml', '*.json', 'SOUL.md']
+    files: ['*']
   },
 
   {
@@ -211,9 +215,11 @@ export const rules = [
     severity: 'critical',
     description: 'Finds Stripe API keys',
     patterns: [
-      /sk_live_[0-9a-zA-Z]{24,}/g,
-      /sk_test_[0-9a-zA-Z]{24,}/g,
-      /rk_live_[0-9a-zA-Z]{24,}/g
+      /sk_live_[0-9a-zA-Z]{8,}/g,
+      /sk_test_[0-9a-zA-Z]{8,}/g,
+      /rk_live_[0-9a-zA-Z]{8,}/g,
+      /pk_live_[0-9a-zA-Z]{8,}/g,
+      /pk_test_[0-9a-zA-Z]{8,}/g
     ],
     files: ['*']
   },
@@ -375,12 +381,57 @@ export const rules = [
     severity: 'critical',
     description: 'Tool allows unrestricted filesystem or network access',
     patterns: [
-      /allow_all_tools\s*[:=]\s*true/gi,
-      /tool_restrictions\s*[:=]\s*false/gi,
-      /sandbox\s*[:=]\s*false/gi,
-      /unrestricted\s*[:=]\s*true/gi
+      /allow_all_tools["']?\s*[:=]\s*true/gi,
+      /tool_restrictions["']?\s*[:=]\s*false/gi,
+      /["']?sandbox["']?\s*[:=]\s*["']?false["']?/gi,
+      /["']?unrestricted["']?\s*[:=]\s*["']?true["']?/gi
     ],
-    files: ['*.yaml', '*.yml', '*.json', 'config.*', 'AGENTS.md']
+    files: ['*.yaml', '*.yml', '*.json', 'config.*', 'AGENTS.md', 'openclaw.json']
+  },
+
+  // Wildcard Allowlist
+  {
+    id: 'TOOL-002',
+    name: 'Wildcard Allowlist',
+    severity: 'critical',
+    description: 'Tool or skill has wildcard allowlist permitting all operations',
+    patterns: [
+      /allowlist["']?\s*[:=]\s*\[\s*["']\*["']\s*\]/gi,
+      /allowlist["']?\s*[:=]\s*["']\*["']/gi,
+      /allow["']?\s*[:=]\s*\[\s*["']\*["']\s*\]/gi,
+      /permissions["']?\s*[:=]\s*["']\*["']/gi
+    ],
+    files: ['*.yaml', '*.yml', '*.json', 'config.*', 'openclaw.json']
+  },
+
+  // Database URL with embedded credentials
+  {
+    id: 'SEC-017',
+    name: 'Database URL with Credentials',
+    severity: 'critical',
+    description: 'Database connection string with embedded password',
+    patterns: [
+      /(?:postgres|mysql|mongodb|redis|amqp)(?:ql)?:\/\/[^:]+:[^@]+@[^\s"']+/gi,
+      /DATABASE_URL\s*[:=]\s*["']?[^\s"']+:\/\/[^:]+:[^@]+@/gi
+    ],
+    files: ['*']
+  },
+
+  // Prompt Injection Vulnerability
+  {
+    id: 'INJ-002',
+    name: 'Prompt Injection Risk',
+    severity: 'high',
+    description: 'System prompt contains patterns vulnerable to injection attacks',
+    patterns: [
+      /follow\s+(?:all|any)\s+instructions/gi,
+      /do\s+whatever\s+(?:the\s+)?(?:user|they|anyone)\s+asks/gi,
+      /obey\s+(?:all|any)\s+(?:commands|instructions|requests)/gi,
+      /no\s+restrictions/gi,
+      /ignore\s+(?:previous|prior|all)\s+(?:instructions|rules|guidelines)/gi,
+      /you\s+have\s+no\s+(?:limits|boundaries|restrictions)/gi
+    ],
+    files: ['SOUL.md', 'SYSTEM.md', '*.md', 'system_prompt.*']
   }
 ];
 

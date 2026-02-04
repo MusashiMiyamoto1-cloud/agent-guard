@@ -105,6 +105,8 @@ export class Scanner {
       if (pattern.startsWith('*.')) {
         const ext = pattern.slice(1);
         if (fileName.endsWith(ext)) return true;
+      } else if (pattern === '.env' && (fileName === '.env' || fileName.startsWith('.env.'))) {
+        return true;
       } else if (fileName === pattern) {
         return true;
       } else if (pattern.includes('*')) {
@@ -175,6 +177,12 @@ export class Scanner {
       }
     }
     
+    // Deduplicate: skip if same rule+file+line already recorded
+    const isDuplicate = this.findings.some(f => 
+      f.rule === rule.id && f.file === filePath && f.line === lineNum
+    );
+    if (isDuplicate) return;
+    
     // Redact sensitive values
     const redactedMatch = this.redactSensitive(match);
     
@@ -207,11 +215,16 @@ export class Scanner {
     const low = this.findings.filter(f => f.severity === 'low');
     
     // Calculate score (0-100)
-    // Weights: Critical=30, High=20, Medium=5, Low=2
-    // 1 High = 80 (B), 1 Critical = 70 (C)
+    // Weights: Critical=30, High=15, Medium=5, Low=2
+    // But multiple criticals compound: 2+ criticals = max 30, 4+ = max 10
+    const criticalPenalty = critical.length === 0 ? 0 :
+      critical.length === 1 ? 30 :
+      critical.length <= 3 ? 30 + (critical.length - 1) * 20 :
+      90 + (critical.length - 3) * 3; // 4+ criticals → near zero
+    
     const score = Math.max(0, 100 - (
-      critical.length * 30 +
-      high.length * 20 +
+      criticalPenalty +
+      high.length * 15 +
       medium.length * 5 +
       low.length * 2
     ));
