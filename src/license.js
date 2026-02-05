@@ -9,8 +9,9 @@ import { createHash } from 'crypto';
 const CONFIG_DIR = join(homedir(), '.agent-guard');
 const LICENSE_FILE = join(CONFIG_DIR, 'license.json');
 
-// Keygen account ID (set after creating Keygen account)
-const KEYGEN_ACCOUNT = process.env.KEYGEN_ACCOUNT || 'YOUR_ACCOUNT_ID';
+// Keygen account & product IDs
+const KEYGEN_ACCOUNT = process.env.KEYGEN_ACCOUNT || 'd4e0f169-7857-4b98-85f5-68e56b7a6e1b';
+const KEYGEN_PRODUCT = '96d1b566-bd48-4bc9-9185-6ddbcb54683b';
 const KEYGEN_API = `https://api.keygen.sh/v1/accounts/${KEYGEN_ACCOUNT}`;
 
 // Feature entitlements
