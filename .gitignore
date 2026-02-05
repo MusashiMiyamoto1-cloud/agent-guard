@@ -6,4 +6,4 @@ agent-guard-logs/
 !package-lock.json
 
 # Private modules
-src/[redacted]/
+src/private/
