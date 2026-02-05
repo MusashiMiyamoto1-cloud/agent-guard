@@ -7,8 +7,9 @@ import { scan } from './scanner.js';
 import { resolve } from 'path';
 
 import { createProxy } from './proxy/index.js';
+import { getLicense, getUpgradePrompt } from './license.js';
 
-const VERSION = '0.3.1';
+const VERSION = '0.4.0';
 
 const FEEDBACK_URL = 'https://github.com/MusashiMiyamoto1-cloud/agent-guard/issues/new';
 const REPO_URL = 'https://github.com/MusashiMiyamoto1-cloud/agent-guard';
@@ -53,27 +54,36 @@ ${COLORS.cyan}╔═════════════════════
 function printHelp() {
   console.log(`
 ${COLORS.bold}Usage:${COLORS.reset}
-  agent-guard scan [path]     Scan directory for security issues
-  agent-guard proxy [port]    Start runtime protection proxy
-  agent-guard feedback [msg]  Submit feedback or report an issue
-  agent-guard --help          Show this help message
-  agent-guard --version       Show version
+  agent-guard scan [path]           Scan directory for security issues
+  agent-guard proxy [port]          Start runtime protection proxy (Pro)
+  agent-guard license activate KEY  Activate Pro license
+  agent-guard license status        Show license status
+  agent-guard license deactivate    Remove license
+  agent-guard feedback [msg]        Submit feedback or report an issue
+  agent-guard --help                Show this help message
+  agent-guard --version             Show version
 
 ${COLORS.bold}Examples:${COLORS.reset}
-  npx agent-guard scan .              Scan current directory
-  npx agent-guard scan ./my-agent     Scan specific agent directory
-  npx agent-guard proxy               Start proxy on port 18800
-  npx agent-guard proxy 8080          Start proxy on custom port
-  npx agent-guard feedback            Open feedback form
-  npx agent-guard feedback "Bug: ..."  Submit inline feedback
+  npx agent-guard scan .                        Scan current directory
+  npx agent-guard scan ./my-agent               Scan specific agent directory
+  npx agent-guard license activate XXXX-XXXX    Activate Pro license
+  npx agent-guard proxy                         Start proxy on port 18800 (Pro)
+  npx agent-guard feedback "Bug: ..."           Submit inline feedback
 
 ${COLORS.bold}Options:${COLORS.reset}
-  --json                      Output results as JSON
+  --json                      Output results as JSON (Pro)
   --quiet                     Only show findings (no banner)
   --policy <file>             Use custom policy file
 
+${COLORS.bold}Free vs Pro:${COLORS.reset}
+  Free: 50 files, 10 findings, 5 basic rules
+  Pro:  Unlimited, all 20+ rules, JSON, proxy, dashboard
+
+  Get Pro: https://agentguard.co/pro
+
 ${COLORS.bold}Environment:${COLORS.reset}
-  HTTP_PROXY=http://127.0.0.1:18800   Route agent through proxy
+  HTTP_PROXY=http://127.0.0.1:18800   Route agent through proxy (Pro)
+  AGENT_GUARD_LICENSE=KEY             License key (alternative to activate)
 
 ${COLORS.bold}Exit Codes:${COLORS.reset}
   0    No critical findings
@@ -225,12 +235,79 @@ async function handleFeedback(message) {
   console.log(`\n${COLORS.gray}Or visit: ${COLORS.cyan}${FEEDBACK_URL}${COLORS.reset}\n`);
 }
 
+async function handleLicense(subcommand, args, quiet) {
+  const license = await getLicense();
+  
+  if (subcommand === 'activate') {
+    const key = args[0] || process.env.AGENT_GUARD_LICENSE;
+    if (!key) {
+      console.log(`${COLORS.red}Error: License key required${COLORS.reset}`);
+      console.log(`Usage: agent-guard license activate YOUR-LICENSE-KEY`);
+      console.log(`\nGet a license at: ${COLORS.cyan}https://agentguard.co/pro${COLORS.reset}`);
+      process.exit(2);
+    }
+    
+    console.log(`${COLORS.gray}Validating license...${COLORS.reset}`);
+    const result = await license.activate(key);
+    
+    if (result.success) {
+      console.log(`${COLORS.green}✓ ${result.message}${COLORS.reset}`);
+      console.log(`\n${COLORS.bold}License Details:${COLORS.reset}`);
+      console.log(`  Product: ${license.data.product}`);
+      console.log(`  Email:   ${license.data.email || 'N/A'}`);
+      if (license.data.expiresAt) {
+        console.log(`  Expires: ${license.data.expiresAt}`);
+      }
+      console.log(`\n${COLORS.green}All Pro features unlocked!${COLORS.reset}`);
+    } else {
+      console.log(`${COLORS.red}✗ ${result.message}${COLORS.reset}`);
+      console.log(`\nNeed a license? Visit: ${COLORS.cyan}https://agentguard.co/pro${COLORS.reset}`);
+      process.exit(2);
+    }
+  } else if (subcommand === 'status') {
+    if (license.isPro()) {
+      console.log(`${COLORS.green}✓ Pro License Active${COLORS.reset}\n`);
+      console.log(`${COLORS.bold}License Details:${COLORS.reset}`);
+      console.log(`  Product: ${license.data.product}`);
+      console.log(`  Email:   ${license.data.email || 'N/A'}`);
+      console.log(`  Since:   ${license.data.activatedAt}`);
+      if (license.data.expiresAt) {
+        console.log(`  Expires: ${license.data.expiresAt}`);
+      }
+    } else {
+      console.log(`${COLORS.yellow}Free Tier${COLORS.reset}\n`);
+      console.log(`${COLORS.bold}Limits:${COLORS.reset}`);
+      console.log(`  Files:    50 max`);
+      console.log(`  Findings: 10 shown`);
+      console.log(`  Rules:    5 basic`);
+      console.log(`  JSON:     ✗`);
+      console.log(`  Proxy:    ✗`);
+      console.log(getUpgradePrompt());
+    }
+  } else if (subcommand === 'deactivate') {
+    const result = await license.deactivate();
+    console.log(`${COLORS.green}✓ ${result.message}${COLORS.reset}`);
+  } else {
+    console.log(`Unknown license command: ${subcommand}`);
+    console.log(`Usage: agent-guard license [activate|status|deactivate]`);
+    process.exit(2);
+  }
+}
+
 async function main() {
   const args = process.argv.slice(2);
   
   const jsonOutput = args.includes('--json');
   const quiet = args.includes('--quiet');
   const filteredArgs = args.filter(a => !a.startsWith('--'));
+  
+  // Load license early
+  const license = await getLicense();
+  
+  // Check for env var license
+  if (!license.isPro() && process.env.AGENT_GUARD_LICENSE) {
+    await license.activate(process.env.AGENT_GUARD_LICENSE);
+  }
   
   if (args.includes('--help') || args.includes('-h')) {
     printBanner();
@@ -252,7 +329,22 @@ async function main() {
     process.exit(0);
   }
   
+  if (command === 'license') {
+    const subcommand = filteredArgs[1] || 'status';
+    const subArgs = filteredArgs.slice(2);
+    if (!quiet) printBanner();
+    await handleLicense(subcommand, subArgs, quiet);
+    process.exit(0);
+  }
+  
   if (command === 'proxy') {
+    if (!license.isPro()) {
+      if (!quiet) printBanner();
+      console.log(`${COLORS.red}Runtime proxy requires Pro license.${COLORS.reset}\n`);
+      console.log(getUpgradePrompt('proxy'));
+      process.exit(2);
+    }
+    
     const port = parseInt(filteredArgs[1]) || 18800;
     if (!quiet) printBanner();
     console.log(`${COLORS.cyan}Starting runtime protection proxy...${COLORS.reset}\n`);
@@ -291,17 +383,53 @@ async function main() {
   }
   
   try {
-    const report = await scan(targetPath);
+    const report = await scan(targetPath, { license });
+    
+    // Apply license limits
+    const limits = license.getLimits();
+    let findings = report.findings;
+    let truncated = false;
+    let hitFileLimit = report.hitFileLimit;
+    
+    if (!license.isPro() && findings.length > limits.maxFindings) {
+      truncated = true;
+      findings = findings.slice(0, limits.maxFindings);
+    }
     
     if (jsonOutput) {
+      if (!license.isPro()) {
+        console.log(`${COLORS.red}JSON output requires Pro license.${COLORS.reset}\n`);
+        console.log(getUpgradePrompt('json'));
+        process.exit(2);
+      }
       // Add feedback URL to JSON output for agent consumption
       report.feedback_url = FEEDBACK_URL;
       report.repo_url = REPO_URL;
       console.log(JSON.stringify(report, null, 2));
     } else {
+      // Show rules info for free tier
+      if (!license.isPro()) {
+        console.log(`${COLORS.gray}Using ${report.rulesUsed}/${report.totalRules} rules (Free tier)${COLORS.reset}\n`);
+      }
+      
       printScore(report);
-      printFindings(report.findings);
+      printFindings(findings);
+      
+      if (hitFileLimit) {
+        console.log(`${COLORS.yellow}${getUpgradePrompt('files')}${COLORS.reset}\n`);
+      }
+      
+      if (truncated) {
+        console.log(`${COLORS.yellow}${getUpgradePrompt('findings').replace('{total}', report.findings.length)}${COLORS.reset}\n`);
+      }
+      
       printRecommendations(report);
+      
+      // Show upgrade prompt for free users with findings
+      if (!license.isPro() && report.totalFindings > 0) {
+        console.log(getUpgradePrompt());
+      }
+      
       printFeedbackFooter();
     }
     

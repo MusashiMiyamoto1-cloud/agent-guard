@@ -14,6 +14,9 @@ const IGNORE_FILES = [
   '.DS_Store', 'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml'
 ];
 
+// Basic rules available in free tier
+const BASIC_RULE_IDS = ['SEC-001', 'SEC-002', 'SEC-003', 'SEC-004', 'SEC-005'];
+
 export class Scanner {
   constructor(options = {}) {
     this.findings = [];
@@ -21,8 +24,14 @@ export class Scanner {
     this.options = {
       maxFileSize: options.maxFileSize || 1024 * 1024, // 1MB
       followSymlinks: options.followSymlinks || false,
+      maxFiles: options.maxFiles || Infinity,
       ...options
     };
+    
+    // Filter rules based on license
+    this.activeRules = options.license?.isPro() 
+      ? rules 
+      : rules.filter(r => BASIC_RULE_IDS.includes(r.id));
   }
 
   async scan(targetPath) {
@@ -64,6 +73,11 @@ export class Scanner {
   }
 
   async scanFile(filePath) {
+    // Check file limit
+    if (this.scannedFiles >= this.options.maxFiles) {
+      return; // Hit free tier limit
+    }
+    
     try {
       const stats = await stat(filePath);
       
@@ -76,7 +90,7 @@ export class Scanner {
       
       this.scannedFiles++;
       
-      for (const rule of rules) {
+      for (const rule of this.activeRules) {
         if (!rule.patterns) continue; // Skip non-pattern rules
         
         if (!this.matchesFilePattern(fileName, rule.files)) {
@@ -252,6 +266,19 @@ export class Scanner {
 }
 
 export async function scan(targetPath, options = {}) {
+  // Apply license limits
+  if (options.license) {
+    const limits = options.license.getLimits();
+    options.maxFiles = options.maxFiles || limits.maxFiles;
+  }
+  
   const scanner = new Scanner(options);
-  return scanner.scan(targetPath);
+  const report = await scanner.scan(targetPath);
+  
+  // Add metadata for license handling
+  report.hitFileLimit = scanner.scannedFiles >= (options.maxFiles || Infinity);
+  report.rulesUsed = scanner.activeRules?.length || rules.length;
+  report.totalRules = rules.length;
+  
+  return report;
 }
