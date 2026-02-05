@@ -1,0 +1,12 @@
+{
+  "name": "agent-guard-webhooks",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node stripe-keygen.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "stripe": "^14.0.0"
+  }
+}
