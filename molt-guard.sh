@@ -39,11 +39,11 @@ echo -e "${BOLD}[1/6] Manifest Check${NC}"
 if [ -f "$TARGET/skill.manifest.json" ]; then
     echo -e "  ${GREEN}[✓] skill.manifest.json present${NC}"
     
-    # Validate accountability_root
-    if grep -q '"accountability_root"' "$TARGET/skill.manifest.json" 2>/dev/null; then
-        echo -e "  ${GREEN}[✓] Human accountability chain (accountability_root) defined${NC}"
+    # Validate accountability root
+    if grep -q '"accountability"' "$TARGET/skill.manifest.json" 2>/dev/null; then
+        echo -e "  ${GREEN}[✓] Human accountability chain defined${NC}"
     else
-        echo -e "  ${YELLOW}[!] Missing accountability_root - no human accountability${NC}"
+        echo -e "  ${YELLOW}[!] Missing accountability root - no human accountability${NC}"
         ((ISSUES++))
     fi
 else

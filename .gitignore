@@ -5,5 +5,5 @@ agent-guard-logs/
 *.lock
 !package-lock.json
 
-# [REDACTED] (private)
+# Private modules
 src/[redacted]/

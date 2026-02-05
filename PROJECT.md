@@ -93,7 +93,7 @@ Insert as HTTP proxy between agent and LLM API. No agent modification needed.
 | Task | Status | Acceptance Criteria |
 |------|--------|---------------------|
 | AID (Agent Identity) | 🔲 Todo | did:atap → ERC-8004 mapping |
-| [REDACTED] generation | 🔲 Todo | Merkle tree of agent state |
+| State attestation | 🔲 Todo | Merkle tree of agent state |
 | ACT signing | 🔲 Todo | Crypto proof of intent |
 | YARA ruleset | 🔲 Todo | Community malware signatures |
 
@@ -143,6 +143,6 @@ Insert as HTTP proxy between agent and LLM API. No agent modification needed.
 
 ## Notes
 
-- accountability_root in manifests traces to human accountability
+- Accountability roots in manifests trace to human operators
 - Scanner ignores agent-guard/ dir to avoid self-scan false positives
 - Test fixtures in test/fixtures/vulnerable-agent/

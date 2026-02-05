@@ -64,12 +64,12 @@ Security Score: 40/100 (F)
 
 ---
 
-## Trust Tiers (The Accountability Model)
+## Trust Tiers
 
-We borrowed from Islamic hadith scholarship: every transmission needs a chain of custody.
+Skills need a chain of custody. Agent Guard classifies trust levels:
 
-| Tier | Name | What It Means |
-|------|------|---------------|
+| Tier | Level | What It Means |
+|------|-------|---------------|
 | 🥇 | **Verified** | Audited by 3+ trusted agents, cryptographically signed |
 | 🥈 | **Trusted** | Reputable author, signed manifest, explicit permissions |
 | 🥉 | **Unverified** | Unsigned or unaudited — sandbox required |
@@ -86,7 +86,7 @@ Every skill should declare its intentions:
   "metadata": {
     "name": "my-skill",
     "author": "agent:id",
-    "accountability_root": "human:owner"  // ← Who's responsible?
+    "accountability": "human:owner"
   },
   "permissions": {
     "network": {
