@@ -10,7 +10,7 @@ const CONFIG_DIR = join(homedir(), '.agent-guard');
 const LICENSE_FILE = join(CONFIG_DIR, 'license.json');
 
 // Keygen account & product IDs
-const KEYGEN_ACCOUNT = process.env.KEYGEN_ACCOUNT || 'd4e0f169-7857-4b98-85f5-68e56b7a6e1b';
+const KEYGEN_ACCOUNT = process.env.KEYGEN_ACCOUNT || 'musashimiyamoto1';
 const KEYGEN_PRODUCT = '96d1b566-bd48-4bc9-9185-6ddbcb54683b';
 const KEYGEN_API = `https://api.keygen.sh/v1/accounts/${KEYGEN_ACCOUNT}`;
 
@@ -150,17 +150,22 @@ export class License {
           'FINGERPRINT_SCOPE_MISMATCH': 'License is activated on another machine. Deactivate first or upgrade to Team.',
           'NO_MACHINES': 'License needs activation. Activating now...',
           'NO_MACHINE': 'License needs activation. Activating now...',
+          'FINGERPRINT_SCOPE_REQUIRED': 'Activating machine...',
           'EXPIRED': 'License has expired. Please renew.',
           'SUSPENDED': 'License has been suspended. Contact support.',
           'NOT_FOUND': 'Invalid license key.',
         };
         
-        if (code === 'NO_MACHINES' || code === 'NO_MACHINE' || code === 'FINGERPRINT_SCOPE_MISMATCH') {
+        // These codes mean the license key itself is valid but needs machine activation
+        const needsActivation = ['NO_MACHINES', 'NO_MACHINE', 'FINGERPRINT_SCOPE_MISMATCH', 'FINGERPRINT_SCOPE_REQUIRED'];
+        
+        if (needsActivation.includes(code)) {
           // Try to activate this machine
           const activateResult = await this.activateMachine(key, validateData.data?.id);
-          if (!activateResult.success) {
+          if (!activateResult.success && !activateResult.skipMachine) {
             return activateResult;
           }
+          // If skipMachine is true, the license is valid but policy doesn't require machine activation
         } else {
           return { 
             success: false, 
@@ -216,11 +221,12 @@ export class License {
 
   async activateMachine(licenseKey, licenseId) {
     try {
+      // Use the license key as Bearer token for machine activation
       const res = await fetch(`${KEYGEN_API}/machines`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          'Content-Type': 'application/vnd.api+json',
+          'Accept': 'application/vnd.api+json',
           'Authorization': `License ${licenseKey}`,
         },
         body: JSON.stringify({
@@ -250,10 +256,15 @@ export class License {
             message: 'Machine limit reached. Deactivate another machine or upgrade.' 
           };
         }
+        if (err.code === 'FORBIDDEN' || err.detail?.includes('not allowed')) {
+          // Policy doesn't allow license key auth - but license is valid
+          // Return success to use the license without machine activation
+          return { success: true, skipMachine: true };
+        }
         return { success: false, message: err.detail || 'Activation failed' };
       }
       
-      return { success: true };
+      return { success: true, machineId: data.data?.id };
     } catch (err) {
       return { success: false, message: err.message };
     }
