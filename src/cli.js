@@ -9,7 +9,7 @@ import { resolve } from 'path';
 import { createProxy } from './proxy/index.js';
 import { getLicense, getUpgradePrompt } from './license.js';
 
-const VERSION = '0.4.0';
+const VERSION = '0.4.1';
 
 const FEEDBACK_URL = 'https://github.com/MusashiMiyamoto1-cloud/agent-guard/issues/new';
 const REPO_URL = 'https://github.com/MusashiMiyamoto1-cloud/agent-guard';
@@ -266,22 +266,30 @@ async function handleLicense(subcommand, args, quiet) {
     }
   } else if (subcommand === 'status') {
     if (license.isPro()) {
-      console.log(`${COLORS.green}✓ Pro License Active${COLORS.reset}\n`);
+      const tierLabel = license.isTeam() ? 'Team' : 'Pro';
+      const tierColor = license.isTeam() ? COLORS.magenta : COLORS.green;
+      console.log(`${tierColor}✓ ${tierLabel} License Active${COLORS.reset}\n`);
       console.log(`${COLORS.bold}License Details:${COLORS.reset}`);
-      console.log(`  Product: ${license.data.product}`);
+      console.log(`  Plan:    ${license.data.name || `Agent Guard ${tierLabel}`}`);
       console.log(`  Email:   ${license.data.email || 'N/A'}`);
-      console.log(`  Since:   ${license.data.activatedAt}`);
+      console.log(`  Machine: ${license.data.fingerprint?.slice(0, 8)}...`);
+      console.log(`  Since:   ${license.data.activatedAt?.split('T')[0]}`);
       if (license.data.expiresAt) {
-        console.log(`  Expires: ${license.data.expiresAt}`);
+        console.log(`  Expires: ${license.data.expiresAt.split('T')[0]}`);
+      }
+      if (license.entitlements?.length > 0) {
+        console.log(`\n${COLORS.bold}Entitlements:${COLORS.reset}`);
+        license.entitlements.forEach(e => console.log(`  ✓ ${e}`));
       }
     } else {
       console.log(`${COLORS.yellow}Free Tier${COLORS.reset}\n`);
       console.log(`${COLORS.bold}Limits:${COLORS.reset}`);
-      console.log(`  Files:    50 max`);
-      console.log(`  Findings: 10 shown`);
-      console.log(`  Rules:    5 basic`);
-      console.log(`  JSON:     ✗`);
-      console.log(`  Proxy:    ✗`);
+      console.log(`  Files:     50 max`);
+      console.log(`  Findings:  10 shown`);
+      console.log(`  Rules:     5 basic`);
+      console.log(`  JSON:      ✗`);
+      console.log(`  Proxy:     ✗`);
+      console.log(`  Dashboard: ✗`);
       console.log(getUpgradePrompt());
     }
   } else if (subcommand === 'deactivate') {

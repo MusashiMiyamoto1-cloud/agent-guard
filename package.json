@@ -1,6 +1,6 @@
 {
   "name": "@musashimiyamoto/agent-guard",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Security scanner for AI agent configurations. Detects misconfigurations, exposed secrets, and unsafe skill patterns.",
   "main": "src/index.js",
   "bin": {
