@@ -2,8 +2,10 @@
 // Phase 1: Configuration & Secret Scanner
 
 import { readdir, readFile, stat } from 'fs/promises';
-import { join, basename, extname } from 'path';
+import { join, basename, extname, relative } from 'path';
+import { existsSync } from 'fs';
 import { rules } from './rules/index.js';
+import { parse as parseYAML } from 'yaml';
 
 const IGNORE_DIRS = [
   'node_modules', '.git', '.venv', '__pycache__', 
@@ -21,10 +23,13 @@ export class Scanner {
   constructor(options = {}) {
     this.findings = [];
     this.scannedFiles = 0;
+    this.ignoredFindings = 0;
+    this.acceptedRisks = [];
     this.options = {
       maxFileSize: options.maxFileSize || 1024 * 1024, // 1MB
       followSymlinks: options.followSymlinks || false,
       maxFiles: options.maxFiles || Infinity,
+      ignoreFile: options.ignoreFile || null,
       ...options
     };
     
@@ -34,9 +39,65 @@ export class Scanner {
       : rules.filter(r => BASIC_RULE_IDS.includes(r.id));
   }
 
+  async loadIgnoreFile(basePath) {
+    // Look for ignore file
+    const ignoreFilePath = this.options.ignoreFile || join(basePath, '.agentguard.ignore');
+    
+    if (!existsSync(ignoreFilePath)) {
+      return;
+    }
+    
+    try {
+      const content = await readFile(ignoreFilePath, 'utf-8');
+      const parsed = parseYAML(content);
+      
+      if (parsed?.accepted_risks && Array.isArray(parsed.accepted_risks)) {
+        this.acceptedRisks = parsed.accepted_risks;
+      }
+    } catch (err) {
+      // Invalid ignore file, skip
+      console.warn(`Warning: Could not parse ${ignoreFilePath}: ${err.message}`);
+    }
+  }
+
+  isAcceptedRisk(rule, filePath, lineNum) {
+    if (this.acceptedRisks.length === 0) return false;
+    
+    for (const risk of this.acceptedRisks) {
+      // Match rule
+      if (risk.rule && risk.rule !== rule) continue;
+      
+      // Match file (supports glob patterns)
+      if (risk.file) {
+        const riskFile = risk.file;
+        if (riskFile.includes('*')) {
+          // Glob pattern
+          const regex = new RegExp('^' + riskFile.replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*') + '$');
+          if (!regex.test(filePath)) continue;
+        } else {
+          // Exact match or suffix match
+          if (!filePath.endsWith(riskFile) && filePath !== riskFile) continue;
+        }
+      }
+      
+      // Match line (optional)
+      if (risk.line !== undefined && risk.line !== null && risk.line !== lineNum) continue;
+      
+      // All criteria matched - this is an accepted risk
+      return true;
+    }
+    
+    return false;
+  }
+
   async scan(targetPath) {
     this.findings = [];
     this.scannedFiles = 0;
+    this.ignoredFindings = 0;
+    this.basePath = targetPath;
+    
+    // Load accepted risks from ignore file
+    await this.loadIgnoreFile(targetPath);
     
     const stats = await stat(targetPath);
     
@@ -191,6 +252,13 @@ export class Scanner {
       }
     }
     
+    // Check if this is an accepted risk
+    const relPath = this.basePath ? relative(this.basePath, filePath) : filePath;
+    if (this.isAcceptedRisk(rule.id, relPath, lineNum) || this.isAcceptedRisk(rule.id, filePath, lineNum)) {
+      this.ignoredFindings++;
+      return; // Skip accepted risks
+    }
+    
     // Deduplicate: skip if same rule+file+line already recorded
     const isDuplicate = this.findings.some(f => 
       f.rule === rule.id && f.file === filePath && f.line === lineNum
@@ -254,6 +322,8 @@ export class Scanner {
       grade,
       scannedFiles: this.scannedFiles,
       totalFindings: this.findings.length,
+      ignoredFindings: this.ignoredFindings,
+      acceptedRisks: this.acceptedRisks.length,
       summary: {
         critical: critical.length,
         high: high.length,
