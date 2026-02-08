@@ -74,6 +74,7 @@ ${COLORS.bold}Options:${COLORS.reset}
   --json                      Output results as JSON (Pro)
   --quiet                     Only show findings (no banner)
   --policy <file>             Use custom policy file
+  --ignore-file <file>        Read accepted risks from file (.agentguard.ignore)
 
 ${COLORS.bold}Free vs Pro:${COLORS.reset}
   Free: 50 files, 10 findings, 5 basic rules
@@ -103,6 +104,10 @@ function printScore(report) {
   
   const bar = '█'.repeat(Math.floor(score / 5)) + '░'.repeat(20 - Math.floor(score / 5));
   
+  const ignoredInfo = report.ignoredFindings > 0 
+    ? `\n  ${COLORS.gray}Accepted risks: ${report.ignoredFindings} (skipped)${COLORS.reset}` 
+    : '';
+  
   console.log(`
 ${COLORS.bold}Security Score:${COLORS.reset} ${gradeColor}${score}/100 (${grade})${COLORS.reset}
 
@@ -114,7 +119,7 @@ ${COLORS.bold}Summary:${COLORS.reset}
   ${COLORS.yellow}Medium:${COLORS.reset}   ${report.summary.medium}
   ${COLORS.cyan}Low:${COLORS.reset}      ${report.summary.low}
 
-  Files scanned: ${report.scannedFiles}
+  Files scanned: ${report.scannedFiles}${ignoredInfo}
 `);
 }
 
@@ -307,7 +312,15 @@ async function main() {
   
   const jsonOutput = args.includes('--json');
   const quiet = args.includes('--quiet');
-  const filteredArgs = args.filter(a => !a.startsWith('--'));
+  
+  // Parse --ignore-file option
+  let ignoreFile = null;
+  const ignoreFileIdx = args.findIndex(a => a === '--ignore-file');
+  if (ignoreFileIdx >= 0 && args[ignoreFileIdx + 1]) {
+    ignoreFile = args[ignoreFileIdx + 1];
+  }
+  
+  const filteredArgs = args.filter((a, i) => !a.startsWith('--') && args[i - 1] !== '--ignore-file');
   
   // Load license early
   const license = await getLicense();
@@ -391,7 +404,7 @@ async function main() {
   }
   
   try {
-    const report = await scan(targetPath, { license });
+    const report = await scan(targetPath, { license, ignoreFile });
     
     // Apply license limits
     const limits = license.getLimits();

@@ -252,10 +252,18 @@ export class Scanner {
       }
     }
     
+    // Deduplicate key for this finding
+    const findingKey = `${rule.id}:${filePath}:${lineNum}`;
+    
     // Check if this is an accepted risk
     const relPath = this.basePath ? relative(this.basePath, filePath) : filePath;
     if (this.isAcceptedRisk(rule.id, relPath, lineNum) || this.isAcceptedRisk(rule.id, filePath, lineNum)) {
-      this.ignoredFindings++;
+      // Only count once per unique finding
+      if (!this.ignoredFindingKeys) this.ignoredFindingKeys = new Set();
+      if (!this.ignoredFindingKeys.has(findingKey)) {
+        this.ignoredFindingKeys.add(findingKey);
+        this.ignoredFindings++;
+      }
       return; // Skip accepted risks
     }
     
